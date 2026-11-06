@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event Recap Studio</title>
+<meta name="description" content="Turn your event notes into ready-to-post recaps: X thread, LinkedIn post, blog, community update, thank-you note, partner report and a recap graphic.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎤</text></svg>">
+<style>
+  :root {
+    --ink: #15122b; --muted: #5d5a73; --line: #e6e3f0; --bg: #f7f6fb; --card: #fff;
+    --brand: #5b3df5; --brand-ink: #fff; --brand-soft: #efebff; --lime: #d8f35a;
+    --ok: #147a4a; --warn: #9a5b00; --err: #b42318; --radius: 14px;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--ink); background: var(--bg);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; line-height: 1.5; }
+  a { color: var(--brand); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  header.top { background: var(--ink); color: #fff; }
+  header.top .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
+  .logo { font-weight: 750; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+  .logo-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--lime); color: var(--ink); display: grid; place-items: center; font-size: 17px; }
+  .powered { color: #b9b5d1; font-size: 13px; margin-left: 4px; }
+  @media (max-width: 520px) { .powered { display: none; } }
+  .spacer { flex: 1; }
+  .ghost-btn { background: transparent; color: #fff; border: 1px solid #3b3660; border-radius: 10px; padding: 7px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+  .ghost-btn:hover { border-color: var(--lime); }
+
+  .hero { padding: 36px 0 18px; }
+  .hero h1 { font-size: clamp(28px, 4vw, 40px); line-height: 1.15; margin: 0 0 10px; letter-spacing: -0.02em; }
+  .hero p { color: var(--muted); margin: 0 0 18px; max-width: 720px; font-size: 17px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+  button { font: inherit; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 10px; padding: 9px 14px; cursor: pointer; font-size: 14px; }
+  .btn { text-decoration: none; display: inline-block; }
+  .btn:hover { border-color: var(--brand); }
+  .btn.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 650; padding: 12px 22px; font-size: 16px; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.primary:disabled { opacity: .6; cursor: wait; }
+  .btn.small { padding: 6px 10px; font-size: 13px; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; margin: 14px 0; }
+  .card h2 { margin: 0 0 14px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+  .step { width: 26px; height: 26px; border-radius: 50%; background: var(--brand-soft); color: var(--brand); font-size: 14px; display: grid; place-items: center; font-weight: 700; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } .card { padding: 16px; } }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600; }
+  label.field small { font-weight: 400; color: var(--muted); }
+  input[type=text], input[type=password], select, textarea {
+    font: inherit; font-size: 15px; color: var(--ink); background: #fff; border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 12px; width: 100%;
+  }
+  textarea { min-height: 108px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand-soft); border-color: var(--brand); }
+  input[type=file] { font-size: 13px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .chip { position: relative; }
+  .chip input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .chip span { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; font-size: 14px; background: #fff; user-select: none; }
+  .chip input:checked + span { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); font-weight: 600; }
+  .chip input:focus-visible + span { outline: 2px solid var(--brand); }
+  .graphic-opts { margin-top: 12px; }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+
+  .settings { border-color: #cfc6ff; background: #fbfaff; }
+  .msg { font-size: 14px; }
+  .msg.err { color: var(--err); }
+  .actions { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 18px 0 8px; }
+
+  #results { padding: 10px 0 30px; }
+  .results-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 18px 0 4px; }
+  .results-head h2 { margin: 0; font-size: 24px; letter-spacing: -0.01em; }
+  .outputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 860px) { .outputs { grid-template-columns: 1fr; } }
+  .out { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); display: flex; flex-direction: column; min-height: 160px; }
+  .out.wide { grid-column: 1 / -1; }
+  .out-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+  .out-head h3 { margin: 0; font-size: 16px; }
+  .pill { font-size: 12px; border-radius: 999px; padding: 3px 9px; background: #f0eff5; color: var(--muted); }
+  .pill.writing { background: #fff6dd; color: var(--warn); }
+  .pill.done { background: #e4f6ec; color: var(--ok); }
+  .pill.error { background: #fde8e6; color: var(--err); }
+  .out-body { padding: 14px 16px; white-space: pre-wrap; word-wrap: break-word; font-size: 15px; flex: 1; max-height: 520px; overflow: auto; }
+  .out-body.empty { color: var(--muted); font-style: italic; }
+  .out-foot { display: flex; gap: 8px; padding: 10px 16px 14px; flex-wrap: wrap; align-items: center; }
+  .out-foot .note { color: var(--muted); font-size: 12px; margin-left: auto; }
+  .err-box { margin: 0 16px 12px; padding: 10px 12px; border-radius: 10px; background: #fde8e6; color: var(--err); font-size: 14px; }
+  .post { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; background: #fcfcfe; white-space: pre-wrap; }
+  .post-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .post-meta .over { color: var(--err); font-weight: 600; }
+  .post-meta button { margin-left: auto; }
+  .graphic-wrap { padding: 16px; display: grid; grid-template-columns: minmax(0, 420px) 1fr; gap: 18px; align-items: start; }
+  @media (max-width: 760px) { .graphic-wrap { grid-template-columns: 1fr; } }
+  .graphic-wrap .out-foot { padding: 12px 0 0; }
+  .graphic-wrap img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+  .placeholder { aspect-ratio: 1 / 1; border-radius: 12px; background: linear-gradient(120deg, #efebff, #f8f7fd, #efebff); background-size: 200% 100%; animation: shimmer 1.6s linear infinite; display: grid; place-items: center; color: var(--muted); font-size: 14px; text-align: center; padding: 20px; }
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+  details summary { cursor: pointer; font-size: 14px; color: var(--muted); }
+  details pre { white-space: pre-wrap; font-size: 13px; background: var(--bg); padding: 10px; border-radius: 10px; }
+  footer { color: var(--muted); font-size: 13px; padding: 26px 0 40px; border-top: 1px solid var(--line); margin-top: 20px; }
+  .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 10px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="logo"><div class="logo-mark">🎤</div>Event Recap Studio</div>
+    <span class="powered">Powered by GMI Cloud</span>
+    <div class="spacer"></div>
+    <button class="ghost-btn" id="settingsBtn" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>Turn your event notes into ready-to-post recaps.</h1>
+    <p>Fill in what happened, or paste your messy notes, and get an X thread, a LinkedIn post, a blog recap, a community update, a thank-you note, a partner report and a recap graphic in about a minute.</p>
+    <div class="row">
+      <button class="btn" id="exampleBtn" type="button">✨ Try an example</button>
+      <button class="btn" id="clearBtn" type="button">Clear</button>
+    </div>
+  </section>
+
+  <section class="card settings" id="settings" hidden>
+    <h2>Settings</h2>
+    <p class="msg" id="keyIntro"></p>
+    <div class="grid">
+      <label class="field" id="ownKeyField">Your GMI API key <small>Optional when the host has a key. Stays in this tab and is only used for your requests.</small>
+        <input type="password" id="ownKey" autocomplete="off" placeholder="Paste a key from console.gmicloud.ai → Settings → API Keys">
+      </label>
+      <label class="field" id="codeField" hidden>Access code <small>Ask the person who shared this app.</small>
+        <input type="password" id="accessCode" autocomplete="off">
+      </label>
+    </div>
+  </section>
+
+  <form id="form" novalidate>
+    <section class="card">
+      <h2><span class="step">1</span>The event</h2>
+      <div class="grid">
+        <label class="field">Event name *<input type="text" name="name" maxlength="300" placeholder="e.g. Kigali Builders Night: Intro to DePIN"></label>
+        <label class="field">Organised by<input type="text" name="organizer" placeholder="Your name or community"></label>
+        <label class="field">Event type<select name="event_type" id="eventType"></select></label>
+        <label class="field">Partners / sponsors<input type="text" name="partners" placeholder="Protocols, sponsors, venue partners"></label>
+        <label class="field">Date<input type="text" name="date" placeholder="e.g. Saturday 17 October 2026"></label>
+        <label class="field">Audience<input type="text" name="audience" placeholder="Who came? e.g. developers, students, creators"></label>
+        <label class="field">Location<input type="text" name="location" placeholder="Venue, city, country (or 'Online')"></label>
+        <label class="field">Handles and hashtags<input type="text" name="tags" placeholder="e.g. @YourCommunity #DePIN #BuildInAfrica"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">2</span>What happened</h2>
+      <div class="grid">
+        <label class="field">Speakers and sessions<textarea name="speakers" placeholder="Name: talk title, one per line"></textarea></label>
+        <label class="field">Your raw notes<textarea name="notes" placeholder="Paste anything: messy notes, voice-note transcripts, the agenda…"></textarea></label>
+        <label class="field">Results and numbers<textarea name="results" placeholder="Attendees, sign-ups, developers onboarded, wallets created, leads…"></textarea></label>
+        <label class="field">Highlights and quotes<textarea name="highlights" placeholder="Standout moments, things people said"></textarea></label>
+        <label class="field">People to thank<input type="text" name="thanks" placeholder="Speakers, volunteers, venue, sponsors"></label>
+        <label class="field">Call to action and links<input type="text" name="cta" placeholder="e.g. Join our Telegram: t.me/… · Next event: …"></label>
+        <label class="field">…or add notes from a file <small>.txt or .md</small><input type="file" id="notesFile" accept=".txt,.md,text/plain,text/markdown"></label>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2><span class="step">3</span>What you want</h2>
+      <div class="chips" id="formatChips"></div>
+      <div class="grid">
+        <label class="field">Language<select id="language"></select></label>
+        <label class="field">Tone<select id="tone"></select></label>
+        <label class="field" id="otherLangField" hidden>Which language?<input type="text" id="otherLang" placeholder="e.g. Amharic, Yoruba, Luganda"></label>
+      </div>
+      <p class="hint" id="langHint" hidden>AI writing is less polished in some African languages, so have a native speaker check it before posting.</p>
+      <div class="graphic-opts">
+        <label class="check"><input type="checkbox" id="graphicOn" checked> <strong id="graphicLabel">🎨 Recap graphic</strong></label>
+        <div class="grid" id="graphicFields" style="margin-top:12px">
+          <label class="field">Graphic type<select id="graphicType">
+            <option value="card">Recap card: free, drawn in your browser</option>
+            <option value="ai">AI artwork: uses GMI image credits</option>
+          </select></label>
+          <label class="field">Format<select id="imageAspect"></select></label>
+          <label class="field" id="cardThemeField">Card colours<select id="cardTheme"></select></label>
+          <label class="field" id="imageStyleField">Artwork style<select id="imageStyle"></select></label>
+          <label class="check" id="includeTitleField"><input type="checkbox" id="includeTitle" checked> Put the event name on the artwork</label>
+        </div>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="btn primary" type="submit" id="generateBtn">🚀 Generate my recap</button>
+      <span class="msg" id="formMsg" role="status"></span>
+    </div>
+  </form>
+
+  <section id="results" hidden aria-live="polite">
+    <div class="results-head">
+      <h2 id="resultsTitle">Your recap</h2>
+      <div class="spacer"></div>
+      <button class="btn" id="downloadAll" type="button">⬇️ Download all text (.md)</button>
+    </div>
+    <p class="hint">Check names, numbers and links before you post.</p>
+    <div class="outputs" id="outputs"></div>
+  </section>
+
+  <footer id="footer">Built with GMI Cloud. AI-written content can contain mistakes, so always review it before you post.</footer>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const ERR = "[[RECAP_ERROR]]";
+  const FIELDS = ["name","event_type","date","location","organizer","partners","audience","tags","speakers","results","highlights","notes","thanks","cta"];
+  const DRAFT_KEY = "recap-studio-draft-v1";
+  const EXAMPLE = {
+    name: "Kigali Builders Night: Intro to DePIN",
+    event_type: "Workshop",
+    date: "Saturday 17 October 2026",
+    location: "Innovation Hub, Kigali, Rwanda",
+    organizer: "Kigali Builders Community",
+    partners: "Nimbus Network (host protocol), a local tech-training partner (venue and outreach)",
+    audience: "Developers, computer science students and crypto-curious creators",
+    tags: "@YourCommunity #DePIN #BuildInAfrica",
+    speakers: "Aline M.: What DePIN is and why it matters for Africa\nJean-Paul K.: Live demo, deploying your first smart contract on testnet\nPanel: Earning with your phone, real DePIN apps people already use",
+    results: "112 people checked in (150 registered)\n47 developers deployed a testnet contract during the session\n63 new members joined the community Telegram\n3 local startups asked for follow-up calls about building on the network",
+    highlights: "The room cheered when the first contract went through live on the projector.\nA student travelled 3 hours from Huye to attend.\nAn attendee said: \"I finally understand what DePIN is.\"",
+    notes: "Started 30 minutes late because of rain. Wi-Fi struggled at first, so we switched to hotspots. Lots of questions about wallets and gas fees, so we need a wallet setup session next time. Pizza ran out early.",
+    thanks: "Speakers Aline and Jean-Paul, the venue team, and our 6 volunteers",
+    cta: "Join the community: t.me/your-community · Next workshop on 21 November, register at lu.ma/your-event",
+  };
+
+  const $ = (s, el = document) => el.querySelector(s);
+  const form = $("#form");
+  const state = { config: null, uploaded: "", job: null, cards: {}, graphic: null };
+
+  const el = (tag, attrs = {}, text) => {
+    const n = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) {
+      if (k === "class") n.className = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else n.setAttribute(k, v);
+    }
+    if (text !== undefined) n.textContent = text;
+    return n;
+  };
+  const fillSelect = (select, options) => { select.replaceChildren(...options.map(o => el("option", { value: o }, o))); };
+
+  function toast(text) {
+    const t = $("#toast"); t.textContent = text; t.classList.add("show");
+    clearTimeout(toast.timer); toast.timer = setTimeout(() => t.classList.remove("show"), 1800);
+  }
+
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); }
+    catch {
+      const ta = el("textarea"); ta.value = text; document.body.append(ta); ta.select();
+      try { document.execCommand("copy"); } finally { ta.remove(); }
+    }
+    toast("Copied");
+  }
+
+  // ---------- X helpers (same rules as the server) ----------
+  function splitThread(text) {
+    const posts = []; let cur = [];
+    for (const line of text.split("\n")) {
+      const t = line.trim();
+      if (t.length >= 3 && /^-+$/.test(t)) { if (cur.length) posts.push(cur.join("\n").trim()); cur = []; }
+      else cur.push(line);
+    }
+    if (cur.length) posts.push(cur.join("\n").trim());
+    return posts.filter(Boolean);
+  }
+  function xLength(text) {
+    text = text.replace(/https?:\/\/\S+/g, "x".repeat(23));
+    let n = 0;
+    for (const ch of text) {
+      const o = ch.codePointAt(0);
+      const light = o <= 4351 || (o >= 8192 && o <= 8205) || (o >= 8208 && o <= 8223) || (o >= 8242 && o <= 8247);
+      n += light ? 1 : 2;
+    }
+    return n;
+  }
+
+  // ---------- Draft (kept in this browser only) ----------
+  function readForm() {
+    const data = {};
+    for (const f of FIELDS) data[f] = (form.elements[f]?.value || "").trim();
+    return data;
+  }
+  function writeForm(data) {
+    for (const f of FIELDS) if (form.elements[f]) form.elements[f].value = data[f] || (f === "event_type" ? state.config.event_types[0] : "");
+  }
+  function saveDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({
+        form: readForm(), language: $("#language").value, otherLang: $("#otherLang").value, tone: $("#tone").value,
+        formats: [...document.querySelectorAll("#formatChips input")].filter(i => i.checked).map(i => i.value),
+        graphic: { on: $("#graphicOn").checked, type: $("#graphicType").value, theme: $("#cardTheme").value, style: $("#imageStyle").value, aspect: $("#imageAspect").value, title: $("#includeTitle").checked },
+      }));
+    } catch { /* storage unavailable: drafts just aren't kept */ }
+  }
+  function loadDraft() {
+    try {
+      const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || "null");
+      if (!d) return;
+      writeForm(d.form || {});
+      const setIf = (sel, v) => { if (v && [...$(sel).options].some(o => o.value === v)) $(sel).value = v; };
+      setIf("#language", d.language); setIf("#tone", d.tone);
+      $("#otherLang").value = d.otherLang || "";
+      if (Array.isArray(d.formats)) document.querySelectorAll("#formatChips input").forEach(i => { i.checked = d.formats.includes(i.value); });
+      if (d.graphic) {
+        $("#graphicOn").checked = !!d.graphic.on; setIf("#imageStyle", d.graphic.style); setIf("#imageAspect", d.graphic.aspect);
+        setIf("#graphicType", d.graphic.type); setIf("#cardTheme", d.graphic.theme);
+        $("#includeTitle").checked = d.graphic.title !== false;
+      }
+    } catch { /* ignore a broken draft */ }
+  }
+
+  // ---------- Requests ----------
+  function headers(json = true) {
+    const h = {};
+    if (json) h["Content-Type"] = "application/json";
+    const key = $("#ownKey").value.trim(); if (key) h["X-GMI-Key"] = key;
+    const code = $("#accessCode").value.trim(); if (code) h["X-Access-Code"] = code;
+    return h;
+  }
+  async function errorFrom(res) {
+    try { const j = await res.json(); if (j.detail) return typeof j.detail === "string" ? j.detail : "Please check the form and try again."; } catch {}
+    return `Something went wrong (${res.status}). Try again.`;
+  }
+  const netError = e => (e instanceof TypeError ? "Couldn't reach the app. Check your connection and try again." : (e.message || "Something went wrong."));
+
+  // ---------- Output cards ----------
+  function setStatus(card, kind, text) { card.pill.className = `pill ${kind}`; card.pill.textContent = text; }
+
+  function makeTextCard(fmt) {
+    const card = { key: fmt.key, label: fmt.label, text: "", done: false };
+    card.root = el("article", { class: "out" + (["blog", "partner_report"].includes(fmt.key) ? " wide" : "") });
+    card.pill = el("span", { class: "pill" }, "Waiting");
+    card.body = el("div", { class: "out-body empty" }, "Writing…");
+    card.errBox = el("div", { class: "err-box", hidden: "" });
+    card.note = el("span", { class: "note" });
+    card.copyBtn = el("button", { class: "btn small", type: "button", disabled: "", onclick: () => copy(card.text) }, "📋 Copy");
+    card.regenBtn = el("button", { class: "btn small", type: "button", disabled: "", onclick: () => runText(card) }, "🔄 Regenerate");
+    const head = el("div", { class: "out-head" }); head.append(el("h3", {}, fmt.label), card.pill);
+    const foot = el("div", { class: "out-foot" }); foot.append(card.copyBtn, card.regenBtn, card.note);
+    card.root.append(head, card.body, card.errBox, foot);
+    return card;
+  }
+
+  function renderThread(card) {
+    const posts = splitThread(card.text);
+    card.body.classList.remove("empty");
+    card.body.style.whiteSpace = "normal";
+    card.body.replaceChildren(...posts.map((p, i) => {
+      const len = xLength(p);
+      const box = el("div", { class: "post" });
+      const meta = el("div", { class: "post-meta" });
+      meta.append(el("span", {}, `Post ${i + 1} of ${posts.length}`), el("span", { class: len > 280 ? "over" : "" }, `≈${len}/280${len > 280 ? ", trim a little" : ""}`),
+        el("button", { class: "btn small", type: "button", onclick: () => copy(p) }, "📋 Copy post"));
+      const txt = el("div", {}, p); txt.style.whiteSpace = "pre-wrap";
+      box.append(meta, txt); return box;
+    }));
+    card.note.textContent = `${posts.length} posts`;
+  }
+
+  async function runText(card) {
+    const job = state.job;
+    card.text = ""; card.done = false;
+    card.body.style.whiteSpace = ""; card.body.className = "out-body empty"; card.body.textContent = "Writing…";
+    card.errBox.hidden = true; card.copyBtn.disabled = true; card.regenBtn.disabled = true; card.note.textContent = "";
+    setStatus(card, "writing", "Writing…");
+    try {
+      const res = await fetch("api/text", { method: "POST", headers: headers(), body: JSON.stringify({ form: job.form, format: card.key, language: job.language, tone: job.tone }) });
+      if (!res.ok) throw new Error(await errorFrom(res));
+      const reader = res.body.getReader(); const dec = new TextDecoder();
+      card.body.classList.remove("empty");
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        card.text += dec.decode(value, { stream: true });
+        const shown = card.text.split(ERR)[0];
+        card.body.textContent = shown;
+      }
+      card.text += dec.decode();
+      let problem = "";
+      if (card.text.includes(ERR)) { [card.text, problem] = card.text.split(ERR); card.text = card.text.trim(); }
+      card.text = card.text.trim();
+      if (!card.text && !problem) problem = "The model sent back an empty answer. Try regenerating.";
+      card.body.textContent = card.text;
+      if (card.key === "x_thread" && card.text) renderThread(card);
+      else if (card.text) card.note.textContent = `${card.text.split(/\s+/).filter(Boolean).length} words`;
+      if (problem) { card.errBox.textContent = problem; card.errBox.hidden = false; setStatus(card, "error", "Incomplete"); }
+      else setStatus(card, "done", "Ready");
+      card.done = !!card.text; card.copyBtn.disabled = !card.text;
+    } catch (e) {
+      card.body.className = "out-body empty"; card.body.textContent = "Nothing written yet.";
+      card.errBox.textContent = netError(e); card.errBox.hidden = false; setStatus(card, "error", "Error");
+    } finally {
+      card.regenBtn.disabled = false;
+    }
+  }
+
+  function makeGraphicCard() {
+    const g = { blobUrl: "", cardData: null };
+    g.root = el("article", { class: "out wide" });
+    g.pill = el("span", { class: "pill" }, "Waiting");
+    g.visual = el("div", { class: "placeholder" }, "Designing your graphic…");
+    g.errBox = el("div", { class: "err-box", hidden: "" });
+    g.download = el("a", { class: "btn small", hidden: "", download: "recap-graphic.png" }, "⬇️ Download PNG");
+    g.nextBtn = el("button", { class: "btn small", type: "button", hidden: "", onclick: () => nextColour() }, "🎨 Next colours");
+    g.regenBtn = el("button", { class: "btn small", type: "button", disabled: "", onclick: () => runGraphic() }, "🔄 Regenerate");
+    g.promptPre = el("pre");
+    g.details = el("details"); g.details.append(el("summary", {}, "See the image prompt"), g.promptPre);
+    g.hint = el("p", { class: "hint" });
+    const side = el("div");
+    const foot = el("div", { class: "out-foot" }); foot.append(g.download, g.nextBtn, g.regenBtn);
+    side.append(g.hint, g.details, foot);
+    const wrap = el("div", { class: "graphic-wrap" }); wrap.append(g.visual, side);
+    const head = el("div", { class: "out-head" }); head.append(el("h3", {}, state.config.graphic_label), g.pill);
+    g.root.append(head, wrap, g.errBox);
+    return g;
+  }
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  function showImage(g, blob) {
+    if (g.blobUrl) URL.revokeObjectURL(g.blobUrl);
+    g.blobUrl = URL.createObjectURL(blob);
+    const pic = el("img", { src: g.blobUrl, alt: `Recap graphic for ${state.job.form.name}` });
+    g.visual.replaceWith(pic); g.visual = pic;
+    g.download.href = g.blobUrl; g.download.download = `${slug(state.job.form.name)}-recap.png`; g.download.hidden = false;
+  }
+
+  async function runGraphic() {
+    const g = state.graphic, job = state.job, isCard = job.graphicType === "card";
+    g.errBox.hidden = true; g.download.hidden = true; g.regenBtn.disabled = true; g.nextBtn.hidden = true;
+    g.details.hidden = isCard;
+    g.hint.textContent = isCard
+      ? "Free: drawn in your browser from your event details, so every name and number is spelled exactly right. Add logos in Canva or Figma."
+      : "Add your logo and partner logos on top in Canva or Figma.";
+    const ph = el("div", { class: "placeholder" }, isCard ? "Writing your recap card…" : "Designing your graphic…");
+    g.visual.replaceWith(ph); g.visual = ph;
+    setStatus(g, "writing", "Designing…");
+    try {
+      if (isCard) await runCard(g, job); else await runArtwork(g, job);
+      setStatus(g, "done", "Ready");
+    } catch (e) {
+      g.visual.textContent = "No graphic yet.";
+      g.errBox.textContent = netError(e); g.errBox.hidden = false; setStatus(g, "error", "Error");
+    } finally {
+      g.regenBtn.disabled = false;
+    }
+  }
+
+  async function runCard(g, job) {
+    const res = await fetch("api/card", { method: "POST", headers: headers(), body: JSON.stringify({ form: job.form, language: job.language }) });
+    if (!res.ok) throw new Error(await errorFrom(res));
+    g.cardData = await res.json();
+    await renderCard(g);
+    g.nextBtn.hidden = false;
+  }
+
+  function renderCard(g) {
+    const canvas = drawCard(g.cardData, state.job, state.job.cardTheme);
+    return new Promise((resolve, reject) => canvas.toBlob(blob => (blob ? (showImage(g, blob), resolve()) : reject(new Error("Couldn't draw the card."))), "image/png"));
+  }
+
+  async function nextColour() {
+    const g = state.graphic, themes = state.config.card_themes;
+    if (!g || !g.cardData) return;
+    state.job.cardTheme = themes[(themes.indexOf(state.job.cardTheme) + 1) % themes.length];
+    $("#cardTheme").value = state.job.cardTheme; saveDraft();
+    await renderCard(g);
+  }
+
+  async function runArtwork(g, job) {
+    const res = await fetch("api/graphic", { method: "POST", headers: headers(), body: JSON.stringify({ form: job.form, style: job.style, aspect: job.aspect, include_title: job.includeTitle }) });
+    if (!res.ok) throw new Error(await errorFrom(res));
+    const { request_id, prompt } = await res.json();
+    g.promptPre.textContent = prompt;
+    g.visual.textContent = "Painting the graphic… this usually takes 20 to 60 seconds.";
+    setStatus(g, "writing", "Painting…");
+    const started = Date.now();
+    for (;;) {
+      if (Date.now() - started > 300000) throw new Error("The image is taking much longer than usual. Try regenerating.");
+      await sleep(3000);
+      const s = await fetch(`api/graphic/${encodeURIComponent(request_id)}`, { headers: headers(false) });
+      if (!s.ok) throw new Error(await errorFrom(s));
+      const { status } = await s.json();
+      if (status === "success") break;
+      if (status === "failed" || status === "cancelled") throw new Error(`Image generation ${status}. Try regenerating, or pick another style.`);
+    }
+    const img = await fetch(`api/graphic/${encodeURIComponent(request_id)}/image`, { headers: headers(false) });
+    if (!img.ok) throw new Error(await errorFrom(img));
+    showImage(g, await img.blob());
+  }
+
+  // ---------- Free recap card: drawn on a canvas, no image model needed ----------
+  const CARD_SIZES = { square: [1080, 1080], portrait: [1080, 1350], landscape: [1600, 900] };
+  const THEMES = {
+    "Midnight & lime": { bg: ["#15122b", "#2d2178"], accent: "#d8f35a", text: "#ffffff", muted: "#c9c5e4", deco: "#d8f35a" },
+    "Violet": { bg: ["#4c2ff0", "#9061f9"], accent: "#fff3a8", text: "#ffffff", muted: "#ebe6ff", deco: "#ffffff" },
+    "Sunset": { bg: ["#ff7a45", "#c2185b"], accent: "#fff3c4", text: "#ffffff", muted: "#ffe6ec", deco: "#ffffff" },
+    "Clean white": { bg: ["#ffffff", "#ece8fb"], accent: "#5b3df5", text: "#15122b", muted: "#5d5a73", deco: "#5b3df5" },
+  };
+  const FONT = 'Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  const sizeKey = aspect => (/portrait/i.test(aspect) ? "portrait" : /landscape/i.test(aspect) ? "landscape" : "square");
+
+  function wrapLines(ctx, text, maxWidth, maxLines) {
+    const words = String(text || "").split(/\s+/).filter(Boolean);
+    const lines = []; let line = "";
+    for (const w of words) {
+      const test = line ? `${line} ${w}` : w;
+      if (!line || ctx.measureText(test).width <= maxWidth) line = test; else { lines.push(line); line = w; }
+    }
+    if (line) lines.push(line);
+    if (lines.length <= maxLines) return { lines, overflow: false };
+    const kept = lines.slice(0, maxLines);
+    let last = `${kept[maxLines - 1]}…`;
+    while (ctx.measureText(last).width > maxWidth && last.length > 2) last = `${last.slice(0, -2)}…`;
+    kept[maxLines - 1] = last;
+    return { lines: kept, overflow: true };
+  }
+
+  function fitText(ctx, text, weight, start, min, maxWidth, maxLines) {
+    for (let size = start; size >= min; size -= 2) {
+      ctx.font = `${weight} ${size}px ${FONT}`;
+      const r = wrapLines(ctx, text, maxWidth, maxLines);
+      if (!r.overflow && r.lines.every(l => ctx.measureText(l).width <= maxWidth)) return { size, lines: r.lines };
+    }
+    ctx.font = `${weight} ${min}px ${FONT}`;
+    return { size: min, lines: wrapLines(ctx, text, maxWidth, maxLines).lines };
+  }
+
+  function clipLine(ctx, text, maxWidth) {
+    let t = String(text || "");
+    if (ctx.measureText(t).width <= maxWidth) return t;
+    while (t.length > 1 && ctx.measureText(`${t}…`).width > maxWidth) t = t.slice(0, -1);
+    return `${t.trimEnd()}…`;
+  }
+
+  function drawCard(card, job, themeName) {
+    const [W, H] = CARD_SIZES[sizeKey(job.aspect)];
+    const t = THEMES[themeName] || THEMES["Midnight & lime"];
+    const u = Math.min(W, H) / 1080, wide = W > H;
+    const canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    ctx.textBaseline = "alphabetic"; ctx.textAlign = "left";
+
+    const bg = ctx.createLinearGradient(0, 0, W, H); bg.addColorStop(0, t.bg[0]); bg.addColorStop(1, t.bg[1]);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.fillStyle = t.deco; ctx.strokeStyle = t.deco;
+    ctx.globalAlpha = 0.12; ctx.beginPath(); ctx.arc(W - 110 * u, 130 * u, 250 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.2; ctx.lineWidth = 3 * u; ctx.beginPath(); ctx.arc(W - 110 * u, 130 * u, 330 * u, 0, Math.PI * 2); ctx.stroke();
+    ctx.globalAlpha = 0.08; ctx.beginPath(); ctx.arc(-60 * u, H + 30 * u, 260 * u, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    const pad = (wide ? 84 : 88) * u, maxW = W - pad * 2;
+    let y = pad + 30 * u;
+
+    ctx.fillStyle = t.accent; ctx.font = `700 ${28 * u}px ${FONT}`;
+    if ("letterSpacing" in ctx) ctx.letterSpacing = `${4 * u}px`;
+    ctx.fillText(clipLine(ctx, (card.kicker || "Event recap").toUpperCase(), maxW * 0.7), pad, y);
+    if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
+
+    const head = fitText(ctx, card.headline || job.form.name, 800, (wide ? 88 : 104) * u, 52 * u, wide ? maxW * 0.82 : maxW, 3);
+    ctx.fillStyle = t.text; y += 14 * u;
+    for (const line of head.lines) { y += head.size * 1.08; ctx.fillText(line, pad, y); }
+
+    const sub = [job.form.date, job.form.location].filter(Boolean).join("  ·  ");
+    if (sub) { ctx.font = `500 ${31 * u}px ${FONT}`; ctx.fillStyle = t.muted; y += 56 * u; ctx.fillText(clipLine(ctx, sub, maxW), pad, y); }
+
+    const footerY = H - pad, ruleY = footerY - 52 * u;
+    const stats = (card.stats || []).slice(0, 3);
+    const statH = stats.length ? 214 * u : 0;
+    ctx.font = `italic 500 ${36 * u}px ${FONT}`;
+    let quote = card.quote ? wrapLines(ctx, `“${card.quote.replace(/^["“]|["”]$/g, "")}”`, maxW, 2).lines : [];
+    let quoteH = quote.length ? quote.length * 48 * u + 10 * u : 0;
+    // Anchor the numbers (and quote) just above the footer; drop the quote if space is tight.
+    if (statH + quoteH + 46 * u + 110 * u > ruleY - y) { quote = []; quoteH = 0; }
+    const blockH = statH + (quoteH ? quoteH + 46 * u : 0);
+    y = Math.max(y + 70 * u, ruleY - 64 * u - blockH);
+
+    if (stats.length) {
+      const gap = 36 * u, colW = (maxW - gap * (stats.length - 1)) / stats.length;
+      stats.forEach((s, i) => {
+        const x = pad + i * (colW + gap);
+        ctx.fillStyle = t.accent; ctx.fillRect(x, y, 56 * u, 6 * u);
+        const v = fitText(ctx, s.value, 800, 112 * u, 48 * u, colW, 1);
+        ctx.fillText(v.lines[0], x, y + 24 * u + v.size * 0.92);
+        ctx.font = `500 ${28 * u}px ${FONT}`; ctx.fillStyle = t.text;
+        wrapLines(ctx, s.label, colW, 2).lines.forEach((l, j) => ctx.fillText(l, x, y + 24 * u + v.size * 0.92 + 44 * u + j * 36 * u));
+      });
+      y += statH;
+    }
+    if (quote.length) {
+      y += 46 * u; ctx.font = `italic 500 ${36 * u}px ${FONT}`; ctx.fillStyle = t.text;
+      quote.forEach((l, i) => ctx.fillText(l, pad, y + i * 48 * u));
+    }
+
+    ctx.save(); ctx.globalAlpha = 0.25; ctx.fillStyle = t.text; ctx.fillRect(pad, ruleY, maxW, 2 * u); ctx.restore();
+    ctx.font = `700 ${28 * u}px ${FONT}`; ctx.fillStyle = t.text;
+    ctx.fillText(clipLine(ctx, job.form.organizer || job.form.event_type || "", maxW * 0.5), pad, footerY);
+    if (job.form.tags) {
+      ctx.font = `500 ${26 * u}px ${FONT}`; ctx.fillStyle = t.muted; ctx.textAlign = "right";
+      ctx.fillText(clipLine(ctx, job.form.tags, maxW * 0.48), W - pad, footerY); ctx.textAlign = "left";
+    }
+    return canvas;
+  }
+
+  const slug = s => (s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "event");
+
+  // ---------- Generate ----------
+  async function onSubmit(ev) {
+    ev.preventDefault();
+    const msg = $("#formMsg"); msg.className = "msg"; msg.textContent = "";
+    const data = readForm();
+    if (state.uploaded) data.notes = [data.notes, state.uploaded].filter(Boolean).join("\n\n");
+    const formats = state.config.formats.filter(f => $(`#fmt-${f.key}`).checked);
+    const wantGraphic = $("#graphicOn").checked;
+    const problems = [];
+    if (!data.name) problems.push("Give the event a name.");
+    if (!["speakers", "results", "highlights", "notes"].some(k => data[k])) problems.push("Add some sessions, results, highlights or notes.");
+    if (!formats.length && !wantGraphic) problems.push("Pick at least one thing to create.");
+    if (!state.config.host_key && !$("#ownKey").value.trim()) { problems.push("Add your GMI API key under Settings."); openSettings(true); }
+    else if (state.config.access_code && !$("#ownKey").value.trim() && !$("#accessCode").value.trim()) { problems.push("Enter the access code under Settings."); openSettings(true); }
+    if (problems.length) { msg.className = "msg err"; msg.textContent = problems.join(" "); return; }
+
+    const lang = $("#language").value === "Other…" ? ($("#otherLang").value.trim() || "English") : $("#language").value;
+    state.job = { form: data, language: lang, tone: $("#tone").value, style: $("#imageStyle").value, aspect: $("#imageAspect").value, includeTitle: $("#includeTitle").checked, graphicType: $("#graphicType").value, cardTheme: $("#cardTheme").value };
+
+    const outputs = $("#outputs"); outputs.replaceChildren(); state.cards = {}; state.graphic = null;
+    $("#resultsTitle").textContent = `Your recap: ${data.name}`;
+    $("#results").hidden = false;
+    const btn = $("#generateBtn"); btn.disabled = true; btn.textContent = "Writing your recap…";
+
+    const runs = [];
+    for (const f of formats) { const c = makeTextCard(f); state.cards[f.key] = c; outputs.append(c.root); }
+    if (wantGraphic) { state.graphic = makeGraphicCard(); outputs.append(state.graphic.root); }
+    $("#results").scrollIntoView({ behavior: "smooth", block: "start" });
+    for (const c of Object.values(state.cards)) runs.push(runText(c));
+    if (state.graphic) runs.push(runGraphic());
+    await Promise.allSettled(runs);
+    btn.disabled = false; btn.textContent = "🚀 Generate my recap";
+  }
+
+  function downloadAll() {
+    if (!state.job) return;
+    const parts = [`# Recap: ${state.job.form.name}\n`];
+    for (const c of Object.values(state.cards)) if (c.text) parts.push(`## ${c.label}\n\n${c.text}\n`);
+    if (state.graphic && state.graphic.promptPre.textContent) parts.push(`## ${state.config.graphic_label} prompt\n\n${state.graphic.promptPre.textContent}\n`);
+    const url = URL.createObjectURL(new Blob([parts.join("\n")], { type: "text/markdown" }));
+    const a = el("a", { href: url, download: `${slug(state.job.form.name)}-recap.md` }); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  function openSettings(open) {
+    $("#settings").hidden = !open; $("#settingsBtn").setAttribute("aria-expanded", String(open));
+  }
+
+  // ---------- Start ----------
+  async function init() {
+    try {
+      const res = await fetch("api/config");
+      state.config = await res.json();
+    } catch {
+      $("#formMsg").className = "msg err"; $("#formMsg").textContent = "Couldn't load the app's settings. Refresh the page.";
+      return;
+    }
+    const c = state.config;
+    fillSelect($("#eventType"), c.event_types);
+    fillSelect($("#language"), c.languages);
+    fillSelect($("#tone"), c.tones);
+    fillSelect($("#imageStyle"), c.image_styles);
+    fillSelect($("#cardTheme"), c.card_themes);
+    if (!c.ai_images) $('#graphicType option[value="ai"]').remove();
+    fillSelect($("#imageAspect"), c.image_sizes);
+    $("#graphicLabel").textContent = c.graphic_label;
+    $("#formatChips").replaceChildren(...c.formats.map(f => {
+      const wrap = el("label", { class: "chip", title: f.help });
+      const box = el("input", { type: "checkbox", id: `fmt-${f.key}`, value: f.key }); box.checked = true;
+      wrap.append(box, el("span", {}, f.label)); return wrap;
+    }));
+
+    $("#keyIntro").textContent = c.host_key
+      ? "This app runs on its host's GMI credits." + (c.allow_user_keys ? " You can use your own GMI key instead." : "")
+      : "Paste your GMI API key to use this app. It stays in this browser tab and is only used for your requests.";
+    $("#ownKeyField").hidden = !c.allow_user_keys;
+    $("#codeField").hidden = !c.access_code;
+    if (!c.host_key || c.access_code) openSettings(true);
+    $("#footer").textContent = `Built with GMI Cloud · text: ${c.text_model}${c.image_model ? ` · artwork: ${c.image_model}` : ""}. AI-written content can contain mistakes, so always review it before you post.`;
+
+    loadDraft();
+    const syncLang = () => {
+      const v = $("#language").value;
+      $("#otherLangField").hidden = v !== "Other…";
+      $("#langHint").hidden = !["Kinyarwanda", "Kiswahili", "Other…"].includes(v);
+    };
+    const syncGraphic = () => {
+      $("#graphicFields").hidden = !$("#graphicOn").checked;
+      const ai = $("#graphicType").value === "ai";
+      $("#cardThemeField").hidden = ai; $("#imageStyleField").hidden = !ai; $("#includeTitleField").hidden = !ai;
+    };
+    syncLang(); syncGraphic();
+
+    form.addEventListener("input", saveDraft);
+    form.addEventListener("change", () => { syncLang(); syncGraphic(); saveDraft(); });
+    form.addEventListener("submit", onSubmit);
+    $("#settingsBtn").addEventListener("click", () => openSettings($("#settings").hidden));
+    $("#exampleBtn").addEventListener("click", () => { writeForm(EXAMPLE); saveDraft(); toast("Example loaded"); });
+    $("#clearBtn").addEventListener("click", () => {
+      writeForm({}); state.uploaded = ""; $("#notesFile").value = "";
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
+      $("#results").hidden = true; $("#outputs").replaceChildren(); state.job = null;
+    });
+    $("#downloadAll").addEventListener("click", downloadAll);
+    $("#notesFile").addEventListener("change", async e => {
+      const file = e.target.files[0];
+      state.uploaded = file ? (await file.text()).slice(0, 50000) : "";
+      if (file) toast(`Added notes from ${file.name}`);
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
